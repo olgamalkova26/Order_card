@@ -51,8 +51,8 @@ async function fetchExchangeRates() {
       'EUR': 0.04,   // cca 25 CZK = 1 EUR
       'USD': 0.045,  // cca 22 CZK = 1 USD
       'GBP': 0.035,  // cca 28.5 CZK = 1 GBP
-      'SAR': 0.12,   // cca 8.33 CZK = 1 SAR
-      'RUB': 0.4     // cca 2.5 CZK = 1 RUB
+      'PLN': 0.19,   // cca 5.3 CZK = 1 PLN
+      'CHF': 0.039   // cca 25.6 CZK = 1 CHF
     };
   }
 }
