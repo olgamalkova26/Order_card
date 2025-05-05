@@ -4,30 +4,41 @@ let selectedCurrency = 'CZK'; // Výchozí měna
 
 console.log("index.js loaded");
 
-// Funkce pro načtení kurzů z ČNB API
+// Funkce pro načtení kurzů z ČNB API (textový formát)
 async function fetchExchangeRates() {
   try {
-    const response = await fetch('https://api.cnb.cz/cnbapi/exrates/daily?lang=en');
-    
+    // Použití CORS proxy pro načtení dat z ČNB
+    const corsProxy = 'https://api.allorigins.win/raw?url=';
+    const cnbUrl = 'https://www.cnb.cz/cs/financni-trhy/devizovy-trh/kurzy-devizoveho-trhu/kurzy-devizoveho-trhu/denni_kurz.txt';
+    const response = await fetch(corsProxy + encodeURIComponent(cnbUrl));
+
     if (!response.ok) {
       throw new Error("Nelze získat kurzy ČNB");
     }
     
-    const data = await response.json();
+    const text = await response.text();
     const rates = {};
     
-    // Zpracování kurzů z API ČNB
-    rates['CZK'] = 1; // Koruna česká jako základ
+    // Zpracování textových dat z ČNB
+    const lines = text.trim().split('\n');
     
-    data.rates.forEach(rate => {
-      // ČNB poskytuje kurzy jako množství cizí měny za CZK
-      // Proto musíme vypočítat převrácený kurz pro konverzi
-      rates[rate.code] = rate.amount / rate.rate;
-    });
+    // První řádek obsahuje datum a číslo
+    console.log("ČNB data ze dne:", lines[0]);
     
-    // Přidáme EUR, pokud není v API (ČNB někdy neobsahuje EUR)
-    if (!rates['EUR']) {
-      rates['EUR'] = 0.04; // přibližně 25 CZK = 1 EUR
+    // Nastavení CZK jako základní měny
+    rates['CZK'] = 1;
+    
+    // Zpracování řádků s kurzy (od třetího řádku dále)
+    for (let i = 2; i < lines.length; i++) {
+      const columns = lines[i].split('|');
+      if (columns.length >= 5) {
+        const code = columns[3];         // Kód měny (např. EUR, USD)
+        const amount = parseFloat(columns[2]);  // Množství (např. 1, 100)
+        const rateValue = parseFloat(columns[4].replace(',', '.')); // Kurz s desetinnou čárkou převedenou na tečku
+        
+        // Výpočet kurzu: kolik cizí měny dostaneme za 1 CZK
+        rates[code] = amount / rateValue;
+      }
     }
     
     console.log("Načtené kurzy:", rates);
@@ -39,6 +50,7 @@ async function fetchExchangeRates() {
       'CZK': 1,
       'EUR': 0.04,   // cca 25 CZK = 1 EUR
       'USD': 0.045,  // cca 22 CZK = 1 USD
+      'GBP': 0.035,  // cca 28.5 CZK = 1 GBP
       'SAR': 0.12,   // cca 8.33 CZK = 1 SAR
       'RUB': 0.4     // cca 2.5 CZK = 1 RUB
     };
@@ -100,7 +112,7 @@ const createProductCard = (productData) => {
       priceElement.textContent = formatCurrency(convertedPrice, selectedCurrency);
       // Uložíme původní cenu jako data atribut pro budoucí přepočty
       priceElement.dataset.originalPrice = productData.price;
-    }
+  }
 
     // Hodnocení
     const ratingElement = productCardElement.querySelector(".rating");
@@ -135,6 +147,7 @@ function updatePrices() {
   const priceElements = document.querySelectorAll('.product-price');
   
   priceElements.forEach(element => {
+    console.log(element)
     const originalPrice = parseFloat(element.dataset.originalPrice);
     const convertedPrice = convertPrice(originalPrice, selectedCurrency);
     element.textContent = formatCurrency(convertedPrice, selectedCurrency);
@@ -176,6 +189,7 @@ async function init() {
   // Přidání event listeneru na selektor měn
   const currencySelector = document.getElementById('currency-selector');
   currencySelector.addEventListener('change', (event) => {
+    console.log(event)
     selectedCurrency = event.target.value;
     updatePrices();
   });
